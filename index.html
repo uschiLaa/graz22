@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Section pursuit</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Ursula Laa" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/kunoichi.css" rel="stylesheet" />
+    <link href="libs/remark-css/ninjutsu.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+
+layout: false
+class: split-75
+background-image: url("plots/title_slide_bkg.png")
+background-position: center
+background-size: contain
+
+&lt;style type="text/css"&gt;
+.remark-slide-content{
+font-size: 34px;
+line-height: 1.2;
+
+}
+code.r{
+  font-size: 24px;
+}
+
+&lt;/style&gt;
+
+
+
+
+&lt;style type="text/css"&gt;
+/* custom.css */
+:root{
+  --main-color1: #509e2f;
+  --main-color2: #bcbddc;
+  --main-color3: #efedf5;
+  --main-color4: #9DDAE5;
+  --text-color3: black;
+  --text-color4: #505050;
+  --code-inline-color: #4e5054;
+  --link-color: #006CAB;
+}
+.large { font-size: 150% }
+.largeish { font-size: 120% }
+.summarystyle { font-size: 150%;
+  line-height:150%;}
+.my-gray {color: #606060!important; }
+.tiny{ font-size: 25%}
+&lt;/style&gt;
+
+
+.column[.content[
+
+
+# **Scagnostics**
+
+**with the cassowaryr package**
+
+.my-gray[
+.large[**Ursula Laa**]&lt;br&gt;
+in collaboration with Harriet Mason, Stuart Lee and Di Cook
+
+.largeish[ Institute of Statistics &lt;br&gt;
+University of Natural Resources and Life Sciences
+]
+]
+
+Austrian and Slovenian Statistical Days 2022
+
+]]
+
+.column[.top_abs.content[
+&lt;img src="plots/Boku-wien.png" width="60%"&gt;
+]]
+
+---
+
+&lt;img src="figure/Features plot-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+&lt;img src="plots/feature_scags.png" width="99%"&gt;
+
+---
+
+# How are scagnostics defined?
+
+Most scagnostics use the information from three graph objects and combine it to describe the shape
+
+
+
+
+
+&lt;img src="figure/unnamed-chunk-3-1.png" style="display: block; margin: auto auto auto 0;" /&gt;
+
+
+---
+
+**convex** &lt;img src="plots/drawconvex.png" width="99%"&gt;
+--
+**outlying** &lt;img src="plots/drawoutlying.png" width="99%"&gt;
+
+---
+# History and implementations in R
+
+Scagnostics were originally suggested by John Tukey (1982) and later advanced and implemented by Lee Wilkinson and collaborators (from ~2005)
+
+- *scagnostics* package on CRAN: wrapper around the original implementation in Java, not straightforward to install/run, difficult to modify
+- *binostics* package on GitHub: translated original code from Java to C, installation mostly straightforward, some C issues prevented submission to CRAN, difficult to modify
+- *cassowaryr* package: new implementation, computes all the scagnostics in R, but relies on tripack (Fortran) for triangulation - might have to remove those dependencies before moving to CRAN
+
+---
+# The cassowaryr package
+
+
+```r
+remotes::install_github("numbats/cassowaryr")
+```
+
+The two main functions are `cassowaryr::calc_scags` (one scatterplot) and `cassowaryr::calc_scags_wide` (all possible scatterplots).
+
+
+```r
+calc_scags(anscombe$x1, anscombe$y1,
+           scags = c("outlying", "convex", "splines"))
+```
+
+```
+#&gt; # A tibble: 1 × 3
+#&gt;   outlying convex splines
+#&gt;      &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1        0  0.736   0.667
+```
+
+---
+# Example: sports statistics
+
+Consider data from the 2020 season of the Australian Football League Women's, obtained with the R package `fitzRoy`
+
+- the data contains 68 variables, 33 of them are numeric
+- this means there are 528 possible scatter plots we could look at
+- use scagnostics to pick some interesting scatterplots
+
+**Workflow:**
+
+- compute scagnostics for all pairs of numeric variables
+- interesting combinations should stand out in these measures `\(\rightarrow\)` we look at a SPLOM of scagnostics measures
+- select interesting combinations with interactive graphics
+
+
+---
+# Example: sports statistics
+
+Illustrative example: select only the first few columns and compute three different scagnostics on all possible combinations.
+
+
+
+
+```r
+calc_scags_wide(aflw[,2:5],
+                scags = c("outlying", "skewed", "splines"))
+```
+
+```
+#&gt; # A tibble: 6 × 5
+#&gt;   Var1      Var2    outlying skewed splines
+#&gt;   &lt;fct&gt;     &lt;fct&gt;      &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1 behinds   goals      0.235  0.721  0.234 
+#&gt; 2 kicks     goals      0.277  0.734  0.0343
+#&gt; 3 kicks     behinds    0.258  0.788  0.0766
+#&gt; 4 handballs goals      0.283  0.803  0.0193
+#&gt; 5 handballs behinds    0.231  0.718  0.0280
+#&gt; 6 handballs kicks      0.213  0.716  0.214
+```
+
+
+---
+
+# Example: sports statistics
+
+&lt;img src="figure/AFLW Scatter Plots-1.png" width="95%" style="display: block; margin: auto;" /&gt;
+
+---
+# Example: sports statistics
+
+&lt;img src="figure/Blue Scatter-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+
+---
+# Current work and outlook
+
+- Publish the package via CRAN (might need replacement for the `tripack` package)
+- Improvements inside the package: implement different options for binning, new or improved measures
+- Applications: use scagnostics to compare groups based on shape, maybe in combination with projection pursuit
+
+
+&lt;img src="figure/simdata-1.png" style="display: block; margin: auto;" /&gt;
+
+---
+layout: false
+background-image: url("plots/title_slide_bkg.png")
+background-position: center
+background-size: contain
+
+# Thanks!
+
+&lt;br&gt;
+
+This is joint work done in collaboration with **Harriet Mason**, **Stuart Lee** and **Di Cook**.
+
+
+My slides are made using `RMarkdown`, `xaringan` and the `ninjutsu` theme.
+The main `R` packages used are `cassowaryr`, `fitzRoy` and the `tidyverse`.
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"ratio": "16:9",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"slideNumberFormat": "%current%"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
